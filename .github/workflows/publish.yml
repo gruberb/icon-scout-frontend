@@ -1,0 +1,38 @@
+name: Publish Frontend Docker Image to GHCR
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish-frontend-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install dependencies and build
+        run: |
+          npm install
+          npm run build
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build the Docker image
+        run: |
+          docker build . --tag ghcr.io/gruberb/icon-scout-frontend:latest
+
+      - name: Push the Docker image
+        run: |
+          docker push ghcr.io/gruberb/icon-scout-frontend:latest

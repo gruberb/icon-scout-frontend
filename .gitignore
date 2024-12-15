@@ -1,0 +1,45 @@
+# Node modules and related
+node_modules
+.pnpm/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.eslintcache
+
+# Logs and reports
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Local env files
+.env
+.env.*.local
+!.env.example
+
+# Editor/IDE specific
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# MacOS system files
+.DS_Store
+
+# Vite cache and build output
+.vite
+.cache
+
+# JetBrains IDE artifacts
+*.iml
+.idea/
+
+# Optional: If using storybook or similar tooling
+storybook-static/
+
