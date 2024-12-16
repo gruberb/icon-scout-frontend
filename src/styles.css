@@ -1,34 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --background: 0 0% 100%;
+        --foreground: 222.2 84% 4.9%;
+        --primary: 221.2 83.2% 53.3%;
+        --primary-hover: 217.2 91.2% 59.8%;
+        --destructive: 0 84.2% 60.2%;
+    }
+}
+
 body {
-    margin: 0;
-    font-family: sans-serif;
-}
-
-.app-container {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-}
-
-.app-header {
-    background-color: #2c3e50;
-    color: #fff;
-    padding: 1rem;
-}
-
-.main-content {
-    display: flex;
-    flex: 1;
-}
-
-.sidebar {
-    width: 300px;
-    background: #f7f7f7;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-}
-
-.results {
-    flex: 1;
-    padding: 1rem;
+    @apply antialiased bg-gray-50;
 }
