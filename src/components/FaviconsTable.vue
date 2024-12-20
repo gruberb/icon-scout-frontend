@@ -1,5 +1,44 @@
 <template>
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+        <!-- Status Filter Buttons -->
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex gap-2">
+                <button
+                    @click="activeFilter = 'all'"
+                    :class="{
+                        'px-3 py-1.5 rounded text-sm font-medium transition-colors': true,
+                        'bg-gray-900 text-white': activeFilter === 'all',
+                        'bg-gray-100 text-gray-600 hover:bg-gray-200':
+                            activeFilter !== 'all',
+                    }"
+                >
+                    All ({{ results.length }})
+                </button>
+                <button
+                    @click="activeFilter = 'Success'"
+                    :class="{
+                        'px-3 py-1.5 rounded text-sm font-medium transition-colors': true,
+                        'bg-green-600 text-white': activeFilter === 'Success',
+                        'bg-green-50 text-green-600 hover:bg-green-100':
+                            activeFilter !== 'Success',
+                    }"
+                >
+                    Success ({{ successCount }})
+                </button>
+                <button
+                    @click="activeFilter = 'Error'"
+                    :class="{
+                        'px-3 py-1.5 rounded text-sm font-medium transition-colors': true,
+                        'bg-red-600 text-white': activeFilter === 'Error',
+                        'bg-red-50 text-red-600 hover:bg-red-100':
+                            activeFilter !== 'Error',
+                    }"
+                >
+                    Error ({{ errorCount }})
+                </button>
+            </div>
+        </div>
+
         <div v-if="loading" class="p-8 text-center">
             <div class="inline-flex items-center">
                 <svg
@@ -86,7 +125,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 bg-white">
-                    <tr v-for="(res, index) in results" :key="index">
+                    <tr v-for="(res, index) in filteredResults" :key="index">
                         <td
                             class="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-900 sm:pl-6"
                         >
@@ -100,8 +139,6 @@
                                         res.status === 'Success',
                                     'bg-red-100 text-red-800':
                                         res.status === 'Error',
-                                    'bg-yellow-100 text-yellow-800':
-                                        res.status === 'Failed',
                                 }"
                             >
                                 {{ res.status }}
@@ -184,8 +221,9 @@
         </div>
     </div>
 </template>
+
 <script setup>
-import { defineProps } from "vue";
+import { ref, computed } from "vue";
 
 const props = defineProps({
     results: {
@@ -196,6 +234,26 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+});
+
+const activeFilter = ref("all");
+
+// Computed properties for counts
+const successCount = computed(
+    () => props.results.filter((result) => result.status === "Success").length,
+);
+
+const errorCount = computed(
+    () => props.results.filter((result) => result.status === "Error").length,
+);
+
+const filteredResults = computed(() => {
+    if (activeFilter.value === "all") {
+        return props.results;
+    }
+    return props.results.filter(
+        (result) => result.status === activeFilter.value,
+    );
 });
 
 function formatUrl(url) {
