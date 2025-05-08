@@ -34,10 +34,15 @@
                             activeFilter !== 'Error',
                     }"
                 >
-                    Error ({{ errorCount }})
+                    Error/Failed ({{ errorCount }})
                 </button>
             </div>
         </div>
+        
+        <ErrorDetailsModal 
+            :error-details="selectedError" 
+            @close="closeErrorModal" 
+        />
 
         <div v-if="loading" class="p-8 text-center">
             <div class="inline-flex items-center">
@@ -122,6 +127,12 @@
                         >
                             Source
                         </th>
+                        <th
+                            scope="col"
+                            class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                        >
+                            Details
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 bg-white">
@@ -138,7 +149,7 @@
                                     'bg-green-100 text-green-800':
                                         res.status === 'Success',
                                     'bg-red-100 text-red-800':
-                                        res.status === 'Error',
+                                        res.status === 'Error' || res.status === 'Failed',
                                 }"
                             >
                                 {{ res.status }}
@@ -215,6 +226,22 @@
                             </div>
                             <div v-else>N/A</div>
                         </td>
+                        <td class="px-3 py-4 text-sm">
+                            <div v-if="res.status === 'Error' || res.status === 'Failed'" class="flex gap-2">
+                                <button
+                                    @click="showErrorDetails(res)"
+                                    class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                                >
+                                    View Errors
+                                </button>
+                                <button
+                                    @click="openErrorInNewTab(res)"
+                                    class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                                >
+                                    New Tab
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -224,6 +251,7 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import ErrorDetailsModal from "./ErrorDetailsModal.vue";
 
 const props = defineProps({
     results: {
@@ -237,6 +265,7 @@ const props = defineProps({
 });
 
 const activeFilter = ref("all");
+const selectedError = ref(null);
 
 // Computed properties for counts
 const successCount = computed(
@@ -244,23 +273,111 @@ const successCount = computed(
 );
 
 const errorCount = computed(
-    () => props.results.filter((result) => result.status === "Error").length,
+    () => props.results.filter((result) => result.status === "Error" || result.status === "Failed").length,
 );
 
 const filteredResults = computed(() => {
     if (activeFilter.value === "all") {
         return props.results;
     }
+    if (activeFilter.value === "Error") {
+        return props.results.filter(
+            (result) => result.status === "Error" || result.status === "Failed",
+        );
+    }
     return props.results.filter(
         (result) => result.status === activeFilter.value,
     );
 });
 
-function formatUrl(url) {
+function formatUrl(urlObj) {
+    const urlString = typeof urlObj === 'string' ? urlObj : urlObj.url;
     const maxLength = 30;
-    if (url.length <= maxLength) return url;
-    const start = url.substring(0, 20);
-    const end = url.substring(url.length - 7);
+    if (urlString.length <= maxLength) return urlString;
+    const start = urlString.substring(0, 20);
+    const end = urlString.substring(urlString.length - 7);
     return `${start}...${end}`;
+}
+
+function showErrorDetails(result) {
+    selectedError.value = result;
+}
+
+function closeErrorModal() {
+    selectedError.value = null;
+}
+
+function openErrorInNewTab(result) {
+    // Create a new HTML page with the error details
+    const errorHTML = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Error Details for ${result.url}</title>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-gray-50 p-6">
+        <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
+            <h1 class="text-xl font-semibold text-gray-900 mb-6">Error Details for ${result.url}</h1>
+            
+            <div class="mb-6">
+                <div class="bg-red-50 p-4 rounded-md">
+                    <div class="flex">
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">Status: ${result.status}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            ${result.error_reasons && result.error_reasons.length > 0 ? `
+            <div class="mb-6">
+                <h2 class="text-lg font-medium text-gray-900 mb-3">Error Reasons:</h2>
+                <ul class="bg-gray-50 rounded-lg overflow-auto divide-y divide-gray-200">
+                    ${result.error_reasons.map(reason => `
+                    <li class="px-4 py-3 text-sm text-gray-700">${reason}</li>
+                    `).join('')}
+                </ul>
+            </div>` : ''}
+            
+            ${result.attempted_urls && result.attempted_urls.length > 0 ? `
+            <div>
+                <h2 class="text-lg font-medium text-gray-900 mb-3">Attempted URLs:</h2>
+                <div class="bg-gray-50 rounded-lg overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Error</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            ${result.attempted_urls.map(url => `
+                            <tr>
+                                <td class="px-4 py-2 text-sm text-gray-900 break-all">${url.url}</td>
+                                <td class="px-4 py-2 text-sm">
+                                    <span class="inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${url.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                        ${url.success ? 'Success' : 'Failed'}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2 text-sm text-gray-500 break-all">${url.error || 'None'}</td>
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>` : ''}
+        </div>
+    </body>
+    </html>
+    `;
+    
+    // Open a new window with the error details
+    const newWindow = window.open('', '_blank');
+    newWindow.document.write(errorHTML);
+    newWindow.document.close();
 }
 </script>
